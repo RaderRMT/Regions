@@ -97,7 +97,9 @@ public class Section {
     }
 
     private int getBitsUsed(int value) {
-        return Integer.SIZE - Integer.numberOfLeadingZeros(value);
+        // if the number of bits value takes is < 4, we return 4 (aka the smallest number of bits per block)
+        // if it's greater than 4, we return the number of bits that value takes
+        return Math.max(Integer.SIZE - Integer.numberOfLeadingZeros(value), 4);
     }
 
     public void cleanUpBlocksAndPalettes() {
