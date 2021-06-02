@@ -61,25 +61,12 @@ public class Section {
 
     public void setBlockStateAt(int x, int y, int z, TagCompound state) {
         int bitsPerBlock = getBitsUsed(palette.size());
-        //int paletteIndex = addToPalette(state);
-
-        for(int i = 0; i < 20; i++) {
-            System.out.println(blockStates[i]);
-        }
-
-        for(int i = 0; i < palette.size(); i++) {
-            System.out.println("ID: " + i + ", " + palette.get(i).getAsTagCompound().get("Name").getAsString());
-        }
+        int paletteIndex = addToPalette(state);
 
         needsRebuilding = (getBitsUsed(palette.size()) - bitsPerBlock) != 0;
 
         BitReader reader = new BitReader(blockStates, getBitsUsed(palette.size()));
-
         reader.jumpToValue(getBlockIndex(x, y, z));
-        int blockState = reader.read();
-        System.out.println(palette.get(blockState).getAsTagCompound().get("Name").getAsString());
-
-        //reader.write(paletteIndex);
         // todo:
         //  reader.write(paletteIndex);
     }

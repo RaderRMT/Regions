@@ -1,10 +1,8 @@
 package fr.rader.regions;
 
-import fr.rader.regions.mca.Chunk;
 import fr.rader.regions.mca.RegionFile;
 import fr.rader.regions.nbt.tags.TagCompound;
 import fr.rader.regions.nbt.tags.TagString;
-import fr.rader.regions.utils.BitReader;
 
 import javax.swing.*;
 import java.io.File;
@@ -13,31 +11,6 @@ import java.io.IOException;
 public class Main {
 
     private void start() throws IOException {
-        /*byte[] testing = {
-                0b00110011,
-                0b01100110,
-                (byte) 0b11001100,
-                (byte) 0b10011001
-        };*/
-
-        /*short[] testing = {
-                0b01110001_11000111,
-                0b01110001_11000111,
-        };
-
-        BitReader reader = new BitReader(testing, 3);
-        reader.setSkipEnd(true);
-
-        System.out.println(String.format("%3s", Integer.toBinaryString(reader.read())).replace(' ', '0'));
-
-        reader.jumpToValue(4);
-        //reader.write(5);
-
-        System.out.println(String.format("%3s", Integer.toBinaryString(reader.read())).replace(' ', '0'));
-        System.out.println(String.format("%3s", Integer.toBinaryString(reader.read())).replace(' ', '0'));
-        System.out.println(String.format("%3s", Integer.toBinaryString(reader.read())).replace(' ', '0'));*/
-
-
         //File region = IO.openFilePrompt("Region File", System.getenv("appdata") + "/.minecraft/saves", ".mca");
         //if(region == null) return;
 
@@ -49,7 +22,7 @@ public class Main {
         TagCompound stoneBlock = new TagCompound();
         stoneBlock.add(new TagString("Name", "minecraft:stone"));
 
-        regionFile.setBlockStateAt(3, 0, 3, stoneBlock);
+        regionFile.setBlockStateAt(7, 0, 7, stoneBlock);
 
         /*RegionFile regionFile = new RegionFile(region);
 

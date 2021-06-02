@@ -117,7 +117,7 @@ public class DataReader {
      * @exception EOFException when the end of file has been reached.
      */
     public long readLong() throws IOException {
-        return (long) readInt() << 32 | readInt();
+        return (long) readInt() << 32 | (readInt() & 0xffffffffL);
     }
 
     /**

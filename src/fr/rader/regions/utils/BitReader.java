@@ -2,45 +2,47 @@ package fr.rader.regions.utils;
 
 public class BitReader {
 
-    private final byte dataTypeSize;    // type of data we read
-    private final int stepSize;         // step size is in bits. min = 1, max = 64. maximum is 64 bits per read, so one long per read max
+    private final byte bitsPerEntry;    // type of data we read
+    private final int bitsPerValue;     // step size is in bits. min = 1, max = 64. maximum is 64 bits per read, so one long per read max
     private final byte[] data;          // data to read
 
     private int currentValue = 0;       // index of the byte we're reading
     private int bitOffset = 0;          // offset in bits of the current data type
 
+    private int valueIndex = 0;         // something
+
     private boolean skipEnd = true;     // skip the end of a dataType if dataSize
 
-    public BitReader(long[] data, int stepSize) {
-        validateStepSize(data.length, Long.SIZE, stepSize);
+    public BitReader(long[] data, int bitsPerValue) {
+        validateStepSize(data.length, Long.SIZE, bitsPerValue);
 
         this.data = toByteArray(data);
-        this.stepSize = stepSize;
-        this.dataTypeSize = Long.SIZE;
+        this.bitsPerValue = bitsPerValue;
+        this.bitsPerEntry = Long.SIZE;
     }
 
-    public BitReader(int[] data, int stepSize) {
-        validateStepSize(data.length, Integer.SIZE, stepSize);
+    public BitReader(int[] data, int bitsPerValue) {
+        validateStepSize(data.length, Integer.SIZE, bitsPerValue);
 
         this.data = toByteArray(data);
-        this.stepSize = stepSize;
-        this.dataTypeSize = Integer.SIZE;
+        this.bitsPerValue = bitsPerValue;
+        this.bitsPerEntry = Integer.SIZE;
     }
 
-    public BitReader(short[] data, int stepSize) {
-        validateStepSize(data.length, Short.SIZE, stepSize);
+    public BitReader(short[] data, int bitsPerValue) {
+        validateStepSize(data.length, Short.SIZE, bitsPerValue);
 
         this.data = toByteArray(data);
-        this.stepSize = stepSize;
-        this.dataTypeSize = Short.SIZE;
+        this.bitsPerValue = bitsPerValue;
+        this.bitsPerEntry = Short.SIZE;
     }
 
-    public BitReader(byte[] data, int stepSize) {
-        validateStepSize(data.length, Byte.SIZE, stepSize);
+    public BitReader(byte[] data, int bitsPerValue) {
+        validateStepSize(data.length, Byte.SIZE, bitsPerValue);
 
         this.data = data;
-        this.stepSize = stepSize;
-        this.dataTypeSize = Byte.SIZE;
+        this.bitsPerValue = bitsPerValue;
+        this.bitsPerEntry = Byte.SIZE;
     }
 
     private void validateStepSize(int dataLength, int dataSize, int stepSize) {
@@ -55,50 +57,29 @@ public class BitReader {
     }
 
     public void jumpToValue(int valueIndex) {
-        valueIndex *= stepSize;
+        this.valueIndex = valueIndex;
 
-        // jump to a value where we don't need to skip to the end
-        currentValue = valueIndex / 8;
-        bitOffset = valueIndex % dataTypeSize;
-
-        // do we need to skip the end?
         if(skipEnd) {
-            // if yes, we get the number of bits left per data type
-            int bits_left_per_value = dataTypeSize % stepSize;
-            // and the values we skipped
-            int values_skipped = valueIndex / dataTypeSize;
-
-            // we then add the numbers of bits we need to get to the correct bit offset
-            bitOffset += bits_left_per_value * values_skipped;
-            if(bitOffset > dataTypeSize) {
-                // if the bit offset exceeds the data type size, we then get the byte index at which we should be
-                currentValue += bitOffset / dataTypeSize;
-                // and we clean the bit offset
-                bitOffset %= dataTypeSize;
-
-                // if it's not zero, we pad it to the next value
-                if(bitOffset % dataTypeSize != 0) {
-                    bitOffset += bits_left_per_value;
-                }
-            }
+            int unusedBits = bitsPerEntry % bitsPerValue;
+            int entriesSkipped = Math.round((valueIndex * bitsPerValue) / (float) bitsPerEntry);
+            bitOffset = valueIndex * bitsPerValue + entriesSkipped * unusedBits;
+            currentValue = (bitOffset / 8);
+            bitOffset %= bitsPerEntry;
+        } else {
+            currentValue = valueIndex * bitsPerValue / 8;
+            bitOffset = valueIndex * bitsPerValue % bitsPerEntry;
         }
     }
 
     /*public void write(int value) {
-        int tempCurrentValue = currentValue;
-        int tempBitOffset = bitOffset;
-
-        if(bitOffset + stepSize > dataTypeSize) {
+        if(bitOffset + bitsPerValue > bitsPerEntry) {
             currentValue++;
             bitOffset = 0;
         }
 
-        for(int i = 0; i < stepSize; i++) {
+        for(int i = 0; i < bitsPerValue; i++) {
             writeBit((value >>> i) & 1);
         }
-
-        this.currentValue = tempCurrentValue;
-        this.bitOffset = tempBitOffset;
     }*/
 
     public void skip() {
@@ -109,16 +90,18 @@ public class BitReader {
         verifyAndSkip();
 
         int out = 0;
-        for(int i = 0; i < stepSize; i++) {
+        for(int i = 0; i < bitsPerValue; i++) {
             out |= readBit() << i;
         }
+
+        valueIndex++;
 
         return out;
     }
 
     private void verifyAndSkip() {
         // skip end if we're going to read outside out value
-        if(bitOffset + stepSize > dataTypeSize) {
+        if(bitOffset + bitsPerValue > bitsPerEntry) {
             if(skipEnd) {
                 currentValue++;
                 bitOffset = 0;
@@ -137,7 +120,7 @@ public class BitReader {
         if(bitOffset % 8 == 0) {
             currentValue++;
 
-            if(bitOffset % dataTypeSize == 0) {
+            if(bitOffset % bitsPerEntry == 0) {
                 bitOffset = 0;
             }
         }
@@ -161,13 +144,13 @@ public class BitReader {
 
     public boolean isDone() {
         boolean lastByteOfArray = (currentValue + 1) >= data.length;
-        boolean nextReadExceedsData = (bitOffset % 8) + stepSize >= dataTypeSize;
+        boolean nextReadExceedsData = (bitOffset % 8) + bitsPerValue >= bitsPerEntry;
 
         return lastByteOfArray && nextReadExceedsData;
     }
 
     public boolean doneWithValue() {
-        return bitOffset + stepSize >= dataTypeSize;
+        return bitOffset + bitsPerValue >= bitsPerEntry;
     }
 
     public void setSkipEnd(boolean skip) {
@@ -219,5 +202,9 @@ public class BitReader {
         }
 
         return out;
+    }
+
+    public int getValueIndex() {
+        return valueIndex;
     }
 }
